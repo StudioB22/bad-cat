@@ -27,10 +27,11 @@ Third pass of the local review gate on the UML dossier, after two rounds of fixe
   single `Event`, faults to stderr, validation in `Settings.__post_init__`,
   `detect(frame, min_confidence)`, opaque `Frame.image`, UC1 guarantee and REQ-6 scope), Nice 9;
   all applied with owner decisions: LAN review page deferred to v2, cooldown floor 10 s.
-- Pass 4 (2026-10-29): Nice 2 (startup cooldown in glossary and UC1, score date), applied; no Must or Should.
 - Pass 3 (2026-10-29): Should 2 (a restart cleared the veto hold-off → the episode now starts in
   `Cooldown`; the cat was still drawn as an actor), Nice 3 (ADR-0005 wording, score source, fault
   visibility); all applied.
+- Pass 4 (2026-10-29): Nice 2 (startup cooldown in glossary and UC1, score date), applied; no
+  Must or Should.
 
 ## 🔴 Must Have
 
