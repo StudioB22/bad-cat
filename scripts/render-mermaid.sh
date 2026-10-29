@@ -8,10 +8,11 @@ trap 'rm -rf "$work"' EXIT
 # GitHub runners need Chromium without its sandbox.
 printf '{"args":["--no-sandbox"]}\n' > "$work/puppeteer.json"
 find "$root" -name '*.md' -print | sort | while IFS= read -r file; do
+  # Fences may be indented (list items); the fence's indentation is stripped from its content.
   awk -v out="$work/block" '
-    /^```mermaid/ { n++; inside = 1; next }
-    /^```/ && inside { inside = 0; next }
-    inside { print > (out n ".mmd") }
+    !inside && /^[ \t]*```mermaid/ { n++; inside = 1; indent = index($0, "`") - 1; next }
+    inside && /^[ \t]*```[ \t]*$/ { inside = 0; next }
+    inside { print substr($0, indent + 1) > (out n ".mmd") }
   ' "$file"
   for block in "$work"/block*.mmd; do
     [ -e "$block" ] || continue
