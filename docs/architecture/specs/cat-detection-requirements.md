@@ -14,7 +14,7 @@ human labour.
 | REQ-1 | Detect a cat in the camera view in daylight; on dark frames, never fire. | Brainstorm |
 | REQ-2 | Fire the water jet only when a cat is detected at or above the cat threshold. | Brainstorm |
 | REQ-3 | Never fire while a person is detected at or above the person threshold anywhere in the frame (`person` veto); a veto holds off firing for the full cooldown; abstain when the cat confidence is below the cat threshold. | [ADR-0004](../decisions/0004-veto-on-person-abstain-by-default.md) |
-| REQ-4 | Adaptive jet: 1 s burst; if the cat is still present 5 s later, fire again, at most 3 bursts per episode; then a 60 s cooldown. The cat counts as gone only after 1 s of continuous absence (absence grace). All five values configurable. | Brainstorm, MCDA 440/500 (jet), 475/500 (absence grace) |
+| REQ-4 | Adaptive jet: 0.5 s burst; if the cat is still present 5 s later, fire again, at most 3 bursts per episode; then a 60 s cooldown. The cat counts as gone only after 1 s of continuous absence (absence grace). All five values configurable. | Brainstorm, MCDA 440/500 (jet), 475/500 (absence grace) |
 | REQ-5 | Record in a structured local log every change of decision or action, plus every `FIRE` and `VETO`, with timestamp and confidences; keep the log 7 days. | [ADR-0005](../decisions/0005-local-log-crops-and-heartbeat.md) |
 | REQ-6 | Keep a crop of the detected cat for each fired episode, 7 days, on the device only (read over SSH in v1). | ADR-0005 |
 | REQ-7 | Emit a periodic heartbeat proving the device is alive. | ADR-0005 |
@@ -35,7 +35,7 @@ human labour.
 ## Settings
 
 All in `config.yaml`, validated at start (REQ-9): `cat_threshold` (0.6), `person_threshold`
-(0.3), `daylight_threshold` (to tune), `burst` (1 s), `recheck_delay` (5 s), `max_bursts` (3),
+(0.3), `daylight_threshold` (to tune), `burst` (0.5 s), `recheck_delay` (5 s), `max_bursts` (3),
 `absence_grace` (1 s), `cooldown` (60 s), `heartbeat_period` (5 min). The relay cap (3 s) is a
 hardware constant, not a setting.
 
@@ -55,7 +55,8 @@ hardware constant, not a setting.
 | Water | Pressurised sprayer + solenoid valve + timer relay | 390 | ADR-0003 |
 | Safety | `person` veto with hold-off, abstain by default | 475 | ADR-0004 |
 | Monitoring | Log + cat crops on the device + heartbeat; LAN review page in v2 | 450 | ADR-0005 |
-| Jet | Adaptive 1 s ×3, then 60 s cooldown | 440 | this spec (REQ-4) |
+| Jet | Adaptive 0.5 s ×3, then 60 s cooldown | 440 | this spec (REQ-4) |
+| Veto during a burst | Blocking 0.5 s burst, residual exposure documented | 400 vs 385 (cancellable valve) | ADR-0004 |
 | Absence grace | 1 s of continuous absence before the cat counts as gone | 475 | this spec (REQ-4) |
 | Aiming | Single fixed nozzle, extensible to multi-zone | 440 | this spec |
 | Hours | Daylight only | 440 | this spec |
@@ -70,6 +71,7 @@ hardware constant, not a setting.
 | --- | --- | --- |
 | RF-DETR too slow on the Pi CPU | NFR-1 missed | Measure early; swap to YOLOX-Nano behind the `CatDetector` port |
 | Nano model misses a person for one frame | Person sprayed | Lower person threshold and veto hold-off of at least 10 s (REQ-3, REQ-9) |
+| Person enters the jet zone during a burst | Sprayed for at most one burst (0.5 s) | Short burst; no frame is read while the valve is open, and a cancellable valve would not close faster than detection (~0.5 s at NFR-1) (ADR-0004) |
 | Relay board energises at boot | Jet opens unattended | Pull-down pin, active-high relay, boot test (NFR-5) |
 | COCO cannot tell the owner's own cat from others | Own cat sprayed | Accepted in v1; fine-tuning later |
 | Sprayer pressure drops as it empties | Weaker jet | Refill/pump reminder from the shot count in the log |

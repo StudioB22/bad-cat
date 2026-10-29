@@ -37,5 +37,5 @@ Option D, driven through a `WaterValve` port, with four fail-closed layers (NFR-
 
 ## Consequences
 
-- Estimated 25–50 one-second bursts per 5 L; pressure drops as it empties (risk logged).
+- Estimated 50–100 half-second bursts per 5 L; pressure drops as it empties (risk logged).
 - Mains water (A) remains a drop-in adapter change if autonomy stops mattering.

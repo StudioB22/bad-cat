@@ -71,8 +71,9 @@ sequenceDiagram
   `person_threshold` (ADR-0004).
 - `decide()` holds the daylight rule (via the pure domain function `is_daylight`) and returns
   `IGNORE` with reason `dark` when it fails; detection is skipped on dark frames to save CPU.
-- `pulse(burst)` blocks the loop for the burst (1 s): no frame is read during a burst, and the
-  camera adapter keeps a one-frame buffer so the next frame is always the newest.
+- `pulse(burst)` blocks the loop for the burst (0.5 s): no frame is read during a burst, so a
+  person entering then is not vetoed until the burst ends (accepted residual risk, ADR-0004).
+  The camera adapter keeps a one-frame buffer so the next frame is always the newest.
 - `save_crop` runs only in the `FIRE` branch, so no frame with a person is ever stored (NFR-4).
 - `ProtectPlantsUnattended` keeps the last `(action, decision)` and records only on a change, plus
   every `FIRE` and `VETO` (REQ-5); the recorder writes what it is given. Every `Event` carries the

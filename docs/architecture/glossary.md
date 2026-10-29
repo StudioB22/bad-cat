@@ -7,7 +7,7 @@ Domain terms used across the bad-cat conception documents, in alphabetical order
 | Absence grace | Continuous time without a detected cat (1 s by default) after which the cat counts as gone. | REQ-4 |
 | Abstain | Decision not to fire because the cat confidence is below the cat threshold. | ADR-0004 |
 | Action | Output of the episode state machine for a frame: `FIRE`, `VETO`, `WAIT`, `ABSTAIN` or `IGNORE`. | `05-state-episode.md` |
-| Burst | One opening of the valve, 1 s by default, always below the 3 s relay cap. | REQ-4, REQ-9 |
+| Burst | One opening of the valve, 0.5 s by default, always below the 3 s relay cap. | REQ-4, REQ-9 |
 | Cat threshold | Minimum cat confidence required to fire. | REQ-2 |
 | Cooldown | Period during which the device never fires: 60 s by default, never below 10 s, after an episode, after any veto, or at every (re)start. | REQ-3, REQ-4 |
 | Crop | Image of the detected cat's bounding box only, saved on `FIRE`, kept 7 days. | REQ-6 |

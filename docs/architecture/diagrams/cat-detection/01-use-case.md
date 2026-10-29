@@ -62,7 +62,7 @@ flowchart LR
 2. System holds off for one full cooldown after arming, then watches the protected zone.
 3. System detects a cat at or above the cat threshold, with no person at or above the person
    threshold in the frame.
-4. System fires a 1 s burst and records the episode with a crop of the cat.
+4. System fires a 0.5 s burst and records the episode with a crop of the cat.
 5. System sees the cat absent for the absence grace (1 s), at least 5 s after the last burst, and
    starts the 60 s cooldown.
 6. System resumes watching (back to step 2) until the gardener pauses it (UC2).
