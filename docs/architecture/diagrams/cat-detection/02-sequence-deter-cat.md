@@ -31,12 +31,12 @@ sequenceDiagram
   Note over Protect: armed by the gardener — run(settings), Settings valid by construction (REQ-9)
   Protect->>Camera: frames()
   Camera-->>Protect: iterator it
-  Protect->>Camera: next(it)
-  Camera-->>Protect: first frame
-  Protect->>Episode: Episode(settings, first frame timestamp)
   loop [until SIGTERM (UC2)]
     Protect->>Camera: next(it)
     Camera-->>Protect: newest frame (timestamp, captured_at, brightness)
+    opt [first frame]
+      Protect->>Episode: Episode(settings, frame.timestamp)
+    end
     break [camera, model, valve or recorder error]
       Note over Protect: write FAULT to stderr (journald), exit non-zero
       Note over Protect,Valve: valve stays closed (pulse try/finally), heartbeat stops
