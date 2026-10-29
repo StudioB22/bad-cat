@@ -59,7 +59,7 @@ flowchart LR
 **Main success scenario**
 
 1. Gardener arms the device.
-2. System watches the protected zone.
+2. System holds off for one full cooldown after arming, then watches the protected zone.
 3. System detects a cat at or above the cat threshold, with no person at or above the person
    threshold in the frame.
 4. System fires a 1 s burst and records the episode with a crop of the cat.

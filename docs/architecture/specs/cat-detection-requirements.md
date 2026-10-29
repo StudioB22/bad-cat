@@ -62,7 +62,7 @@ hardware constant, not a setting.
 | Power | Mains in v1 | — | this spec |
 | Roles | Benoît and Clément on everything, split per issue | — | this spec |
 | Veto hold-off floor | Cooldown never below 10 s | — | this spec (REQ-9) |
-| LAN review page | Deferred to v2; crops read over SSH in v1 | 440 (vs 290, chat 2026-10-28) | this spec (REQ-6) |
+| LAN review page | Deferred to v2; crops read over SSH in v1 | 440 (vs 290; MCDA 2026-10-28, owner decision 2026-10-29) | this spec (REQ-6) |
 
 ## Risks
 
