@@ -2,6 +2,13 @@
 
 Chronological logbook of bad-cat decisions and milestones, newest first; complements `git log`.
 
+## 2026-10-29 — Baseline CI
+
+- PR #4 merged (058d629, closes #3): GitHub Actions run gitleaks on full history and render every
+  Mermaid block; Dependabot for actions. SonarQube scanned locally (`localhost:9000`, project
+  `bad-cat`, gate passed); GitHub CI cannot reach the local server.
+- Codex review: indented Mermaid fences were skipped; fixed before merge.
+
 ## 2026-10-29 — UML dossier hardened
 
 - Two more review passes applied. Owner decisions: LAN review page deferred to v2 (crops read
