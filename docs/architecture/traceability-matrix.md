@@ -16,11 +16,11 @@ pairs.
 | REQ-7 | REQ-7 → UC4 | REQ-7 → `EventRecorder.heartbeat`, `Frame.timestamp` | REQ-7 → SEQ-deter-cat (heartbeat opt) | planned |
 | REQ-8 | REQ-8 → UC2; UC1 ext. *b | REQ-8 → service stop, SIGTERM handler | REQ-8 → SEQ-deter-cat (loop until SIGTERM) | planned |
 | REQ-9 | REQ-9 → UC1 preconditions; UC5 | REQ-9 → `Settings.__post_init__` (domain) | REQ-9 → SEQ-deter-cat (settings validated) | planned |
-| NFR-1 | — | NFR-1 → `OnnxRfDetrDetector` | — | to measure |
+| NFR-1 | — | NFR-1 → `OnnxRfDetrDetector`; measured on the Raspberry Pi 5 (`08-deployment.md`) | — | to measure |
 | NFR-2 | — | NFR-2 → layer boundaries | — | planned |
 | NFR-3 | — | NFR-3 → ADR-0002 (RF-DETR Apache-2.0) | — | planned |
-| NFR-4 | NFR-4 → UC1 ext. 3a | NFR-4 → `save_crop` only on `FIRE`, crops on the device | NFR-4 → SEQ-deter-cat | planned |
-| NFR-5 | NFR-5 → UC1 minimal guarantee, ext. *a | NFR-5 → NC valve, pull-down pin, `pulse` try/finally, timer relay | NFR-5 → SEQ-deter-cat (break) | planned |
+| NFR-4 | NFR-4 → UC1 ext. 3a | NFR-4 → `save_crop` only on `FIRE`, crops on the device; SSH-only LAN ingress (`08-deployment.md`) | NFR-4 → SEQ-deter-cat | planned |
+| NFR-5 | NFR-5 → UC1 minimal guarantee, ext. *a | NFR-5 → NC valve, pull-down pin + external pull-down (opto-isolated relay), `pulse` try/finally, non-retriggering timer relay; layer-to-node table in `08-deployment.md` | NFR-5 → SEQ-deter-cat (break) | planned |
 | NFR-6 | — | NFR-6 → domain and application tests | — | planned |
 
 ## Use cases
@@ -29,6 +29,6 @@ pairs.
 | --- | --- | --- |
 | UC1 Protect plants unattended | REQ-1–REQ-7, REQ-9, NFR-4, NFR-5 | UC1 → SEQ-deter-cat; `05-state-episode.md` |
 | UC2 Pause deterrence | REQ-8 | UC2 → SEQ-deter-cat (loop exit) |
-| UC3 Review deterrence episodes | REQ-5, REQ-6 | UC3 → SSH in v1; LAN page v2 adapter |
-| UC4 Check device health | REQ-7 | UC4 → SSH in v1 (log, journald) |
+| UC3 Review deterrence episodes | REQ-5, REQ-6 | UC3 → SSH in v1 (`08-deployment.md`); LAN page v2 adapter |
+| UC4 Check device health | REQ-7 | UC4 → SSH in v1 (log, journald; `08-deployment.md`) |
 | UC5 Tune deterrence settings | REQ-2, REQ-4, REQ-9 | UC5 → `Settings` |

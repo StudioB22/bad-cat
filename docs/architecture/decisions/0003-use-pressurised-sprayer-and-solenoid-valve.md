@@ -2,7 +2,7 @@
 
 bad-cat sprays from a hand-pressurised garden sprayer through a solenoid valve, guarded by hardware against staying open.
 
-- Status: Accepted (owner, 2026-10-28)
+- Status: Accepted (owner, 2026-10-28); amended 2026-10-30 (issue #5)
 - Issue: #1
 
 ## Context
@@ -30,10 +30,13 @@ Sensitivity: D stays first while autonomy weighs about 20 or more; below, A lead
 Option D, driven through a `WaterValve` port, with four fail-closed layers (NFR-5):
 
 - a 12 V **normally closed** valve, shut on power loss;
-- a GPIO pin with a default **pull-down**, driving an **active-high** relay input, so the coil is
-  off whenever the pin is undriven (boot, exit); verified by a boot test;
+- a GPIO pin with a default **pull-down** (BCM 9–27) plus an external pull-down at the
+  **active-high**, opto-isolated relay input, so the coil is off whenever the input is undriven
+  (boot, exit, 5 V loss, broken signal wire); verified by a boot test;
 - `pulse()` closing in `try/finally`, plus a SIGTERM handler so a service stop mid-burst closes it;
-- a **one-shot timer relay** that cuts the coil after 3 s whatever the GPIO does (hang, SIGKILL).
+- a **one-shot timer relay** (power-on trigger, non-retriggering, resets on power-off), powered
+  through the relay contact, that cuts the coil after 3 s whatever the GPIO does (hang, SIGKILL,
+  welded contact). Amended 2026-10-30 (issue #5, owner); wiring in `08-deployment.md`.
 
 ## Consequences
 
