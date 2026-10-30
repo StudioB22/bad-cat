@@ -2,7 +2,7 @@
 
 bad-cat sprays from a hand-pressurised garden sprayer through a solenoid valve, guarded by hardware against staying open.
 
-- Status: Accepted (owner, 2026-10-28)
+- Status: Accepted (owner, 2026-10-28); amended 2026-10-30 (issue #5)
 - Issue: #1
 
 ## Context

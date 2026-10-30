@@ -41,8 +41,9 @@ hardware constant, not a setting.
 
 ## Constraints
 
-- Hardware: Raspberry Pi 5 (4 GB) and Camera Module 3 (owner 2026-10-30), one protected zone, 12 V NC solenoid valve via an
-  active-high relay and a one-shot timer relay, 5–8 L hand-pressurised garden sprayer, mains power.
+- Hardware: Raspberry Pi 5 (4 GB) and Camera Module 3 (owner 2026-10-30), one protected zone,
+  12 V NC direct-acting solenoid valve via an active-high, opto-isolated relay and a one-shot
+  timer relay, 5–8 L hand-pressurised garden sprayer, mains power.
 - Software: Python ≥ 3.10, OpenCV, ONNX Runtime, RF-DETR Nano exported to ONNX.
 - Repository public, MIT licence.
 

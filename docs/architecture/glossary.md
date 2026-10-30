@@ -20,7 +20,7 @@ Domain terms used across the bad-cat conception documents, in alphabetical order
 | Heartbeat | Periodic log line proving the device is alive. | REQ-7 |
 | Hold-off | The cooldown started by a veto or by a (re)start; never below 10 s. | REQ-3, REQ-9 |
 | Ignore | Decision when no cat is in the frame, or when the frame is too dark (daylight rule). | REQ-1, REQ-5 |
-| One-shot timer relay | Hardware relay between the valve relay and the coil; cuts the 12 V coil after 3 s whatever the GPIO does (relay cap). | ADR-0003, `08-deployment.md` |
+| One-shot timer relay | Hardware relay between the valve relay and the coil; cuts the 12 V coil after 3 s whatever the GPIO does (the relay cap of REQ-9). | ADR-0003, `08-deployment.md` |
 | Person threshold | Minimum person confidence that triggers a veto; always below the cat threshold. | REQ-3, REQ-9 |
 | Port | Interface (`typing.Protocol`) in `application/` that an infrastructure adapter realises. | ADR-0001 |
 | Recheck delay | Wait after a burst before the device may fire again in the same episode, 5 s by default. | REQ-4 |

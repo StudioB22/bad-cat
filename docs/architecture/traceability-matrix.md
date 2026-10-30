@@ -20,7 +20,7 @@ pairs.
 | NFR-2 | — | NFR-2 → layer boundaries | — | planned |
 | NFR-3 | — | NFR-3 → ADR-0002 (RF-DETR Apache-2.0) | — | planned |
 | NFR-4 | NFR-4 → UC1 ext. 3a | NFR-4 → `save_crop` only on `FIRE`, crops on the device; SSH-only LAN ingress (`08-deployment.md`) | NFR-4 → SEQ-deter-cat | planned |
-| NFR-5 | NFR-5 → UC1 minimal guarantee, ext. *a | NFR-5 → NC valve, pull-down pin, `pulse` try/finally, timer relay; layer-to-node table in `08-deployment.md` | NFR-5 → SEQ-deter-cat (break) | planned |
+| NFR-5 | NFR-5 → UC1 minimal guarantee, ext. *a | NFR-5 → NC valve, pull-down pin + external pull-down (opto-isolated relay), `pulse` try/finally, non-retriggering timer relay; layer-to-node table in `08-deployment.md` | NFR-5 → SEQ-deter-cat (break) | planned |
 | NFR-6 | — | NFR-6 → domain and application tests | — | planned |
 
 ## Use cases

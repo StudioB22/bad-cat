@@ -59,9 +59,9 @@ flowchart LR
   Cli -.->|"«create» injects"| RfDetr
   Cli -.->|"«create» injects"| Relay
   Cli -.->|"«create» injects"| Jsonl
-  Camera -.->|"runtime: V4L2 / libcamera"| Cam["Camera module (external)"]
+  Camera -.->|"runtime: libcamera (Pi 5: Picamera2 may be needed)"| Cam["Camera module (external)"]
   RfDetr -.->|"runtime: ONNX Runtime"| Model[("rf-detr-nano.onnx (git-ignored)")]
-  Relay -.->|"runtime: GPIO (pull-down pin, active-high)"| Guard["One-shot timer relay (hardware max-on guard)"]
+  Relay -.->|"runtime: GPIO (pull-down pin + external pull-down, active-high, opto-isolated)"| Guard["One-shot timer relay (hardware max-on guard)"]
   Guard -.->|"12 V"| Valve["12 V NC solenoid valve (external)"]
   Jsonl -.->|"runtime: file I/O"| Disk[("events.jsonl, crops/ (7 days)")]
 ```
@@ -88,9 +88,11 @@ flowchart LR
 - No clock port: every timing is computed from `Frame.timestamp`. If the camera stalls, no frame
   arrives, so the heartbeat stops (UC1 ext. *a).
 - Valve fail-closed (NFR-5) has four layers: NC valve (power loss); a GPIO pin with a default
-  pull-down driving an active-high relay input, so the coil is off whenever the pin is undriven
-  (boot, exit); `pulse()` with `try/finally` plus a SIGTERM handler (exceptions, service stop);
-  a one-shot timer relay cutting the coil after 3 s (hang, SIGKILL).
+  pull-down (BCM 9–27) plus an external pull-down at an active-high, opto-isolated relay input,
+  so the coil is off whenever the input is undriven (boot, exit, 5 V loss, broken signal wire);
+  `pulse()` with `try/finally` plus a SIGTERM handler (exceptions, service stop); a one-shot
+  timer relay (power-on trigger, non-retriggering) cutting the coil after 3 s (hang, SIGKILL,
+  welded contact). Wiring and layer-to-node table: `08-deployment.md`.
 - NFR-4 invariant: `save_crop` is called only on `FIRE`, which implies no person, and stores only
   the cat box. Unit-tested.
 - Pause (REQ-8, UC2) in v1 means stopping the service (`systemctl stop`); tuning (UC5) means
