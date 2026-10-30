@@ -9,8 +9,7 @@ adapter realises.
 
 ## Context
 
-It does not show runtime order (`SEQ-deter-cat`) nor the hardware wiring (deployment diagram, to
-be added).
+It does not show runtime order (`SEQ-deter-cat`) nor the hardware wiring (`08-deployment.md`).
 
 ## Diagram
 

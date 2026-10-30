@@ -19,7 +19,7 @@ water jet, without ever spraying a person.
 title: C4 context — bad-cat
 ---
 flowchart LR
-  Gardener["👤 Gardener"] -->|"arms, pauses, tunes; reviews over SSH"| Device["bad-cat device (Raspberry Pi)"]
+  Gardener["👤 Gardener"] -->|"arms, pauses, tunes; reviews over SSH"| Device["bad-cat device (Raspberry Pi 5)"]
   Cat["🐈 Visiting cat"] -.->|"seen by the camera"| Device
   Device -->|"water jet"| Cat
   Bystander["Bystander"] -.->|"seen, never sprayed"| Device
@@ -70,5 +70,5 @@ hardware or model dependency sits behind a port, so the core is tested without h
    constraints, risks.
 2. [decisions/](decisions/) — ADR-0001 to ADR-0005.
 3. [diagrams/cat-detection/](diagrams/cat-detection/) — `01-use-case`, `02-sequence-deter-cat`,
-   `03-component`, `05-state-episode` (deployment diagram to be added with the hardware brick).
+   `03-component`, `05-state-episode`, `08-deployment`.
 4. [glossary.md](glossary.md) and [traceability-matrix.md](traceability-matrix.md).

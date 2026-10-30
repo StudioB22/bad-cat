@@ -2,6 +2,15 @@
 
 Chronological logbook of bad-cat decisions and milestones, newest first; complements `git log`.
 
+## 2026-10-30 — Hardware deployment modelled
+
+- Issue #5: owner decisions Raspberry Pi 5 (4 GB) + Camera Module 3 (MCDA 425/500) and one
+  protected zone, extensible (445/500); spec open questions closed.
+- `08-deployment.md` added; the architecture review tightened the fail-closed chain:
+  pull-down-capable pin (BCM 9–27) plus an external pull-down at the relay input,
+  opto-isolated relay, non-retriggering power-on timer relay, flyback diode, direct-acting
+  valve, RCD on outdoor mains; Picamera2 risk recorded.
+
 ## 2026-10-29 — Baseline CI
 
 - PR #4 merged (058d629, closes #3): GitHub Actions run gitleaks on full history and render every

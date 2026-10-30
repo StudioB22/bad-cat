@@ -41,7 +41,7 @@ hardware constant, not a setting.
 
 ## Constraints
 
-- Hardware: Raspberry Pi (model to confirm), standard camera, 12 V NC solenoid valve via an
+- Hardware: Raspberry Pi 5 (4 GB) and Camera Module 3 (owner 2026-10-30), one protected zone, 12 V NC solenoid valve via an
   active-high relay and a one-shot timer relay, 5–8 L hand-pressurised garden sprayer, mains power.
 - Software: Python ≥ 3.10, OpenCV, ONNX Runtime, RF-DETR Nano exported to ONNX.
 - Repository public, MIT licence.
@@ -64,6 +64,8 @@ hardware constant, not a setting.
 | Roles | Benoît and Clément on everything, split per issue | — | this spec |
 | Veto hold-off floor | Cooldown never below 10 s | — | this spec (REQ-9) |
 | LAN review page | Deferred to v2; crops read over SSH in v1 | 440 (vs 290; MCDA 2026-10-28, owner decision 2026-10-29) | this spec (REQ-6) |
+| Board and camera | Raspberry Pi 5 (4 GB) + Camera Module 3 | 425 (vs Pi 4 395, Pi Zero 2 W 340; owner 2026-10-30) | `08-deployment.md` |
+| Protected zones | One zone in v1, extensible behind `WaterValve` | 445 (vs 2 zones 335, N zones 305; owner 2026-10-30) | `08-deployment.md` |
 
 ## Risks
 
@@ -76,9 +78,10 @@ hardware constant, not a setting.
 | COCO cannot tell the owner's own cat from others | Own cat sprayed | Accepted in v1; fine-tuning later |
 | Sprayer pressure drops as it empties | Weaker jet | Refill/pump reminder from the shot count in the log |
 | Camera films beyond the garden | GDPR exposure | Aim the camera at the plants only; store cat crops only (NFR-4); `VETO` lines carry no image and expire after 7 days |
+| `OpenCVCamera` cannot open Camera Module 3 through V4L2 on the Pi 5 | No frames | Use Picamera2 or a libcamera source inside the adapter (`08-deployment.md`) |
+| Pilot-operated valve does not open at sprayer pressure | No jet | Direct-acting valve, zero minimum pressure (`08-deployment.md`) |
 | False positive on a moving object | Wasted water | Threshold tuned on logged crops (REQ-6) |
 
 ## Open questions
 
-- Raspberry Pi model and camera on hand?
-- Number of protected zones (drives the multi-zone extension)?
+None; the board and the number of zones were settled on 2026-10-30 (issue #5).
