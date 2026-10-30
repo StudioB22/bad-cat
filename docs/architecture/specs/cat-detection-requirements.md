@@ -29,7 +29,7 @@ human labour.
 | NFR-2 | `domain/` imports the standard library only; `application/` imports `domain/` and the standard library; adapters hold OpenCV, ONNX Runtime and GPIO. |
 | NFR-3 | Every dependency and model weight is licence-compatible with MIT (no AGPL/GPL). |
 | NFR-4 | No image leaves the local network; no frame containing a person is stored. |
-| NFR-5 | The jet never opens or stays open by accident: NC valve (power loss); coil de-energised in every undriven GPIO state (boot, exit) through a pull-down pin and an active-high relay; software close in `try/finally` with a SIGTERM handler; hardware one-shot timer relay capping the coil at 3 s (hang, kill). Tested at boot. |
+| NFR-5 | The jet never opens or stays open by accident: NC valve (power loss); coil de-energised in every undriven GPIO state (boot, exit) through a pull-down pin plus an external pull-down at an active-high, opto-isolated relay input (also covers 5 V loss and a broken signal wire); software close in `try/finally` with a SIGTERM handler; hardware one-shot timer relay (power-on trigger, non-retriggering) capping the coil at 3 s (hang, kill, welded contact). Tested at boot. |
 | NFR-6 | Unit test coverage ≥ 80 % on domain and application; core tests run without hardware. |
 
 ## Settings
