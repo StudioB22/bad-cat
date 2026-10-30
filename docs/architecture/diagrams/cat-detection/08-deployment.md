@@ -93,8 +93,9 @@ Faults go to stderr, which systemd hands to journald (OS); the gardener reads th
   and loses pressure as it empties; a pilot-operated valve may not open on a 0.5 s pulse.
 - Camera: on the Pi 5, Camera Module 3 is reached through libcamera; `OpenCVCamera` may need
   Picamera2 (apt package, venv with system site packages) or a libcamera source (risk in the spec).
-- Ingress: SSH on the LAN is the only way in; no port is exposed to the internet and no image
-  leaves the device (NFR-4). The LAN review page (UC3) is a v2 interface adapter on this node.
+- Ingress: SSH on the LAN is the only way in; no port is exposed to the internet. Images are
+  stored on the device only; crops reach the laptop over SSH on the LAN and never leave the local
+  network (NFR-4). The LAN review page (UC3) is a v2 interface adapter on this node.
 - Performance: NFR-1 (≥ 2 frames/s) is measured on this exact node; RF-DETR Nano runs on the
   Pi 5 CPU through ONNX Runtime, YOLOX-Nano as fallback (ADR-0002).
 - Veto (ADR-0004): no veto path exists in hardware; a blocking 0.5 s burst is the residual
