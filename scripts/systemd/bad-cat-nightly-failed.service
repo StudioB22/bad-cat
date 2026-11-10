@@ -1,0 +1,6 @@
+[Unit]
+Description=Desktop notification when the bad-cat nightly local CI fails
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/notify-send --urgency=critical "bad-cat local CI nightly failed" "journalctl --user -u bad-cat-nightly.service"

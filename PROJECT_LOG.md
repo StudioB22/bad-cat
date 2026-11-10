@@ -2,6 +2,16 @@
 
 Chronological logbook of bad-cat decisions and milestones, newest first; complements `git log`.
 
+## 2026-11-10 — Local CI, no GitHub workflow
+
+- Issue #7 (ADR-0006, owner MCDA 450/500): every check runs locally, `ci.yml` deleted, zero
+  workflow left (nothing deploys from GitHub). Tiers `just fast` / `check` / `test` / `gate` /
+  `nightly`, lefthook hooks, mise-pinned tools, `scripts/attest.sh` + `just merge <pr>` with the
+  `gate` attestation (agents-skills ADR-0003); `main` ruleset requires the `gate` status only.
+- `just check` measured at 56 s (budget 3 min); wiring tests 80 + 31 cases.
+- Bootstrap merge under the owner's waiver (`.github/allowed_signers` not yet on `main`); every
+  later merge through `just merge`. Clément: `git pull && mise trust && mise x -- just setup`.
+
 ## 2026-10-30 — Hardware deployment modelled
 
 - Issue #5: owner decisions Raspberry Pi 5 (4 GB) + Camera Module 3 (MCDA 425/500) and one

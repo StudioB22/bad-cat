@@ -1,0 +1,3 @@
+# typos (step of `just lint` and of the pre-commit hook): English docs and shell only.
+[files]
+extend-exclude = ["mise.lock", ".scannerwork/"]

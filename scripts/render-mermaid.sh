@@ -5,7 +5,7 @@ root="${1:-docs}"
 [ -d "$root" ] || { echo "no $root directory" >&2; exit 1; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-# GitHub runners need Chromium without its sandbox.
+# Chromium runs without its sandbox: needed on CI runners and inside containers, harmless elsewhere.
 printf '{"args":["--no-sandbox"]}\n' > "$work/puppeteer.json"
 find "$root" -name '*.md' -print | sort | while IFS= read -r file; do
   # Fences may be indented (list items); the fence's indentation is stripped from its content.

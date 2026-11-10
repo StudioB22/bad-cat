@@ -68,7 +68,7 @@ hardware or model dependency sits behind a port, so the core is tested without h
 
 1. [specs/cat-detection-requirements.md](specs/cat-detection-requirements.md) — needs, REQ/NFR,
    constraints, risks.
-2. [decisions/](decisions/) — ADR-0001 to ADR-0005.
+2. [decisions/](decisions/) — ADR-0001 to ADR-0006.
 3. [diagrams/cat-detection/](diagrams/cat-detection/) — `01-use-case`, `02-sequence-deter-cat`,
    `03-component`, `05-state-episode`, `08-deployment`.
 4. [glossary.md](glossary.md) and [traceability-matrix.md](traceability-matrix.md).
