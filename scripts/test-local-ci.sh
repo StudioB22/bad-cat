@@ -1,19 +1,10 @@
 #!/bin/sh
-# Tests for the local CI wiring (#7, skill local-ci rule 7): the four tiers exist and compose
-# (check = lint + test + diagrams + secrets; nightly ⊇ check), no GitHub workflow is left (ADR-0006),
-# lefthook.yml is valid and wires the commit-msg and pre-push hooks, the commit-msg check accepts
-# and refuses the right subjects; then, in a throwaway repository with stubbed boundaries (just
-# steps, attest.sh, gh, sonar-scanner, curl, mise): gate refuses a dirty tree, a HEAD behind the
-# base or unpushed, a branch changing the CI without GATE_CI_CHANGE=1, runs check → sonar →
-# attestation in that order, stops at the first failing step and attests nothing when a step fails
-# or HEAD moved, and propagates a failed attestation (agents-skills ADR-0003); merge refuses a
-# non-numeric PR and a head without attestation, verifies with the attest.sh of origin/main, merges
-# with --squash --match-head-commit and propagates a gh failure; sonar refuses a missing scanner,
-# a missing token and a server that is down, never prints the token, and a failed quality gate
-# fails it; toolchain-drift fails on a mise.toml pin behind, not on a global row; L0 (`just fast`)
-# passes a clean staged change but refuses a staged secret, a typo and a shell warning.
-# Needs mise, just, lefthook, gitleaks, shellcheck, typos (the tool wordings asserted are pinned by
-# mise.lock):
+# Tests for the local CI wiring (#7, skill local-ci rule 7): the tiers compose as the justfile
+# says, no GitHub workflow is left (ADR-0006), the hooks are wired, the commit-msg subjects; then
+# the gate, merge, sonar and drift recipes in a throwaway repository with stubbed boundaries (just
+# steps, attest.sh, gh, sonar-scanner, curl, mise), each case commented in place; last the real L0
+# hooks. Needs mise, just, lefthook, gitleaks, shellcheck, typos (the tool wordings asserted are
+# pinned by mise.lock):
 #   mise x -- sh scripts/test-local-ci.sh
 set -e
 # A hook (pre-push runs `just check`) exports these; they would aim git at the outer repository.
@@ -42,19 +33,18 @@ done
 
 # Tiers and their composition.
 cd "$root"
-for r in fast check gate nightly setup merge sonar lint test diagrams secrets; do
+for r in fast setup; do # the others run below or inside check
   just --show "$r" > /dev/null 2>&1 || fail "recipe $r missing"; ok
 done
 deps() { just --show "$1" | grep -E "^$1( |:)" | sed 's/.*: *//'; } # deps <recipe>
 [ "$(deps check)" = "lint test diagrams secrets" ] || fail "check must be exactly lint test diagrams secrets"; ok
 deps nightly | grep -qw check || fail "nightly does not depend on check"; ok
+# Regression guards against narrowing the scans.
 just --show diagrams | grep -q 'scripts/render-mermaid.sh \.' || fail "diagrams does not render the whole repository"; ok
 just --show secrets | grep -q 'gitleaks git --redact' || fail "secrets does not scan the history with gitleaks"; ok
 # No GitHub workflow at all (ADR-0006): nothing deploys from GitHub.
 [ ! -d .github/workflows ] || fail "a GitHub workflow is left (ADR-0006)"; ok
-grep -qE '^ +run: sh scripts/check-commit-msg.sh \{1\}' lefthook.yml || fail "commit-msg hook does not run check-commit-msg.sh on the message file"; ok
 grep -qE '^ +mise x -- just check$' lefthook.yml || fail "pre-push hook does not run just check"; ok
-grep -qF 'git status --porcelain' lefthook.yml || fail "pre-push hook does not refuse a dirty tree"; ok
 lefthook validate > /dev/null || fail "lefthook validate"; ok
 
 # commit-msg subjects.
@@ -76,6 +66,9 @@ msg 1 "feat(detector): $(printf 'x%.0s' $(seq 85))" # 101
 msg 1 ''
 msg 0 'Revert "feat: x"'
 msg 1 'feat(Detector): uppercase scope'
+msg 0 'amend! feat: x'
+msg 0 'squash! feat: x'
+msg 1 'feat:  two spaces'
 
 # Recipes with their boundaries stubbed, in a throwaway repository with a bare origin. The real
 # `just` runs the recipe; a stub `just` first on PATH records the steps the recipe delegates to
@@ -101,7 +94,7 @@ EOF2
 cat > "$box/stub/gh" <<'EOF2'
 #!/bin/sh
 echo "gh $*" >> "$LOG"; [ "${GH_FAIL:-}" != "$2" ] || exit 1
-case "$*" in "pr view"*) git rev-parse origin/main ;; esac # the PR head: a real, fetchable commit
+case "$*" in "pr view"*) git rev-parse origin/pr7 ;; esac # the PR head: a real, fetchable commit, not origin/main
 EOF2
 cat > "$box/stub/sonar-scanner" <<'EOF2'
 #!/bin/sh
@@ -109,15 +102,19 @@ echo "sonar-scanner $* token=${SONAR_TOKEN:-none}" >> "$LOG"; echo "sonar-scanne
 EOF2
 cat > "$box/stub/mise" <<'EOF2'
 #!/bin/sh
-printf '%s\n' "$MISE_OUT"
+echo "mise $*" >> "$LOG"
+case "$*" in *--bump*) printf '%s\n' "$MISE_OUT" ;; *) printf '%s\n' "${MISE_PATCH:-}" ;; esac
 EOF2
 cat > "$box/stub/curl" <<'EOF2'
 #!/bin/sh
-echo "curl $*" >> "$LOG"; [ "${SONAR_DOWN:-0}" = 0 ] && echo '{"status":"UP"}'
+echo "curl $*" >> "$LOG"; [ "${SONAR_DOWN:-0}" = 0 ] && echo "{\"status\":\"${SONAR_STATUS:-UP}\"}"
 EOF2
 chmod +x scripts/attest.sh "$box/stub"/*
 export MISE_TRUSTED_CONFIG_PATHS="$box/repo" LOG="$work/log"
 git add -A && git commit -qm 'chore: init' --no-verify && git push -q origin main 2> /dev/null
+# The PR branch merge works on: its tip must differ from origin/main.
+git checkout -q -b pr7 && git commit -q --allow-empty -m 'feat: pr7' --no-verify && git push -q origin pr7 2> /dev/null && git checkout -q main
+fresh() { git reset -q --hard origin/main && git clean -fdq; } # every block starts from origin/main
 box_run() { # box_run <expected-exit> <label> <text the output or log must hold|-> -- <env>… <just args>
   want=$1 label=$2 text=$3; shift 4
   : > "$LOG"; rc=0; env PATH="$box/stub:$PATH" "$@" > "$work/out" 2>&1 || rc=$?
@@ -139,38 +136,48 @@ box_run 0 "gate: green path" "attest write gate" -- "$real_just" gate main
 box_run 1 "gate: failing check stops it" - -- env FAIL_STEP=check "$real_just" gate main
 [ "$(tr '\n' ' ' < "$LOG")" = "just check " ] || { cat "$LOG"; fail "gate went past a failed check"; }; ok
 box_run 1 "gate: failing sonar stops it" - -- env FAIL_STEP=sonar "$real_just" gate main
-no_line '^attest' "gate attested after a failed sonar"
-box_run 1 "gate: failed attestation propagates" - -- env ATTEST_FAIL=1 "$real_just" gate main
+[ "$(tr '\n' ' ' < "$LOG")" = "just check just sonar " ] || { cat "$LOG"; fail "gate steps after a failed sonar"; }; ok
+box_run 1 "gate: failed attestation propagates" "attest write gate" -- env ATTEST_FAIL=1 "$real_just" gate main
 box_run 0 "gate: default base" "attest write gate" -- "$real_just" gate
-echo '#!/bin/sh' > scripts/new.sh && git add scripts/new.sh && git commit -qm 'ci(workflows): ci change' --no-verify && git push -q origin HEAD:ci 2> /dev/null
-box_run 1 "gate: a branch changing the local CI refused" "changes the local CI itself" -- "$real_just" gate origin/main
-no_line '^just check' "gate ran check on a branch changing the local CI"
+# The CI-change guard: every path of its pathspec, the only stop before a branch's own justfile
+# runs with the owner's keys; GATE_CI_CHANGE must be exactly 1.
+for p in scripts/new.sh justfile lefthook.yml mise.toml mise.lock typos.toml .gitleaks.toml .gitleaksignore package.json package-lock.json .github/x.yml sonar-project.properties; do
+  fresh; mkdir -p "$(dirname "$p")"; echo '# x' >> "$p"
+  git add "$p"; git commit -qm 'ci: touch' --no-verify; git push -qf origin HEAD:cichg 2> /dev/null
+  box_run 1 "gate: a branch changing $p refused" "changes the local CI itself ($p" -- "$real_just" gate origin/main
+  no_line '^just check' "gate ran check on a branch changing $p"
+done
+box_run 1 "gate: GATE_CI_CHANGE=true is not the opt-in" "changes the local CI itself" -- env GATE_CI_CHANGE=true "$real_just" gate origin/main
 box_run 0 "gate: the same branch gated after reading" "attest write gate" -- env GATE_CI_CHANGE=1 "$real_just" gate origin/main
-git reset -q --hard origin/main
-echo 'sonar.projectKey=x' > sonar-project.properties && git add sonar-project.properties && git commit -qm 'ci(sonar): properties change' --no-verify && git push -q origin HEAD:ci2 2> /dev/null
-box_run 1 "gate: a branch changing sonar-project.properties refused" "sonar-project.properties" -- "$real_just" gate origin/main
-git reset -q --hard origin/main
+fresh
 box_run 1 "gate: HEAD moved during the run" "HEAD moved" -- env MOVE_HEAD=1 "$real_just" gate main
 no_line '^attest' "gate attested a HEAD that moved"
-git reset -q --hard origin/main
-git -C "$box/origin" update-ref refs/heads/ahead "$(git rev-parse HEAD)" && git commit -q --allow-empty -m 'chore: ahead' --no-verify && git push -q origin HEAD:ahead 2> /dev/null && git reset -q --hard origin/main
-box_run 1 "gate: HEAD behind the base refused" "behind origin/ahead" -- "$real_just" gate origin/ahead
+fresh
+# The base moves on the remote from another clone: only the gate's own fetch can see it.
+git clone -q "$box/origin" "$box/other" 2> /dev/null
+git -C "$box/other" -c user.email=t@example.com -c user.name=t commit -q --allow-empty -m 'chore: ahead' --no-verify
+git -C "$box/other" push -q origin main 2> /dev/null
+box_run 1 "gate: HEAD behind a base that moved on the remote" "behind origin/main" -- "$real_just" gate origin/main
 no_line '^just check' "gate ran check on a HEAD behind the base"
+git pull -q --ff-only origin main 2> /dev/null
 
 # merge: argument shape, the attestation, the exact gh command.
-box_run 1 "merge: non-numeric PR refused" "usage just merge" -- "$real_just" merge --help
-no_line '^gh' "merge called gh on a bad argument"
-box_run 1 "merge: unattested head refused" - -- env ATTEST_FAIL=1 "$real_just" merge 7
+for bad in --help '' '7;id'; do
+  box_run 1 "merge: PR argument '$bad' refused" "usage just merge" -- "$real_just" merge "$bad"
+  no_line '^gh' "merge called gh on a bad argument"
+done
+box_run 1 "merge: unattested head refused" "attest verify gate" -- env ATTEST_FAIL=1 "$real_just" merge 7
 no_line 'gh pr merge' "merge merged an unattested head"
-head=$(git rev-parse origin/main)
+head=$(git rev-parse origin/pr7)
+[ "$head" != "$(git rev-parse origin/main)" ] || fail "fixture: the PR head must differ from origin/main"; ok
 box_run 0 "merge: attested head merged" "gh pr merge 7 --squash --match-head-commit $head" -- "$real_just" merge 7
 grep -q "^attest verify gate $head\$" "$LOG" || fail "merge did not verify the head SHA"; ok
 printf '#!/bin/sh\nexit 1\n' > scripts/attest.sh
 box_run 0 "merge: verifier of origin/main, not the checkout's" "gh pr merge 7" -- "$real_just" merge 7
 git checkout -q scripts/attest.sh
-box_run 1 "merge: gh pr view failure propagates" - -- env GH_FAIL=view "$real_just" merge 7
+box_run 1 "merge: gh pr view failure propagates" "gh pr view 7" -- env GH_FAIL=view "$real_just" merge 7
 no_line 'gh pr merge' "merge merged after gh pr view failed"
-box_run 1 "merge: gh pr merge failure propagates" - -- env GH_FAIL=merge "$real_just" merge 7
+box_run 1 "merge: gh pr merge failure propagates" "gh pr merge 7" -- env GH_FAIL=merge "$real_just" merge 7
 
 # sonar: the guards, then the call with the token in the environment and the gate wait.
 mkdir "$box/bare" && for b in sh git cat; do ln -s "$(command -v "$b")" "$box/bare/$b"; done
@@ -179,22 +186,37 @@ box_run 1 "sonar: no token" "no token" -- env HOME="$box" "$real_just" sonar
 no_line sonar-scanner "sonar ran the scanner without a token"
 box_run 1 "sonar: server down" "not UP" -- env HOME="$box" SONAR_TOKEN=t0k SONAR_DOWN=1 "$real_just" sonar
 no_line sonar-scanner "sonar ran the scanner against a server that is down"
+box_run 1 "sonar: server STARTING" "not UP" -- env HOME="$box" SONAR_TOKEN=t0k SONAR_STATUS=STARTING "$real_just" sonar
+no_line sonar-scanner "sonar ran the scanner against a server that is starting"
 box_run 0 "sonar: scan with the gate wait" "sonar-scanner -Dsonar.host.url=http://localhost:9000 -Dsonar.qualitygate.wait=true token=t0k" -- env HOME="$box" SONAR_TOKEN=t0k "$real_just" sonar
 grep -q 't0k' "$work/out" && fail "sonar passed the token on the command line"; ok
-mkdir -p "$box/.config/sonar-tokens" && echo f1le > "$box/.config/sonar-tokens/bad-cat"
-box_run 0 "sonar: token read from ~/.config/sonar-tokens/bad-cat" "token=f1le" -- env HOME="$box" "$real_just" sonar
-box_run 1 "sonar: failed quality gate fails the recipe" - -- env HOME="$box" SONAR_TOKEN=t0k SCANNER_FAIL=1 "$real_just" sonar
+box_run 0 "sonar: host override" "sonar.host.url=http://sq:9 " -- env HOME="$box" SONAR_TOKEN=t0k SONAR_HOST_URL=http://sq:9 "$real_just" sonar
+grep -q 'curl .*http://sq:9/api/system/status' "$LOG" || fail "curl ignored SONAR_HOST_URL"; ok
+mkdir -p "$box/.config/sonar-tokens" "$box/.config/sonarqube" && echo gl0b > "$box/.config/sonarqube/analysis-token"
+box_run 0 "sonar: global token fallback" "token=gl0b" -- env HOME="$box" "$real_just" sonar
+echo f1le > "$box/.config/sonar-tokens/bad-cat"
+box_run 0 "sonar: project token beats the global one" "token=f1le" -- env HOME="$box" "$real_just" sonar
+box_run 0 "sonar: SONAR_TOKEN beats the files" "token=t0k" -- env HOME="$box" SONAR_TOKEN=t0k "$real_just" sonar
+box_run 1 "sonar: failed quality gate fails the recipe" "sonar.qualitygate.wait=true" -- env HOME="$box" SONAR_TOKEN=t0k SCANNER_FAIL=1 "$real_just" sonar
+grep -q 't0k' "$work/out" && fail "sonar printed the token on failure"; ok
+rm -r "$box/.config"
 
-# toolchain drift: a --bump row of mise.toml counts, a global row does not; a failing mise fails it.
-drift() { box_run "$1" "drift: $2" "$3" -- env MISE_OUT="$4" sh "$root/scripts/toolchain-drift.sh"; }
+# toolchain drift: a --bump row of mise.toml other than node, or a Node patch without --bump,
+# counts; a Node major bump and a global row do not; the flags are the ones asserted; a failing
+# mise fails it.
+drift() { box_run "$1" "drift: $2" "$3" -- env MISE_OUT="$4" MISE_PATCH="${5:-}" sh "$root/scripts/toolchain-drift.sh"; }
 drift 0 "empty report" "up to date" ''
+grep -qx 'mise outdated --bump --no-global --no-header' "$LOG" || fail "drift --bump flags"; ok
+grep -qx 'mise outdated --no-global --no-header' "$LOG" || fail "drift patch-pass flags"; ok
 drift 0 "global rows ignored" "up to date" 'just  1.0.0  1.1.0  ~/.tool-versions'
+drift 0 "a Node major bump is not drift" "up to date" 'node  22  22.23.4  26  26.13.0  mise.toml'
+drift 1 "a Node patch is drift" "node  22  22.23.3" 'node  22  22.23.3  26  26.13.0  mise.toml' 'node  22  22.23.3  22.23.4  mise.toml'
 drift 1 "a mise.toml row fails" "bump mise.toml" "$(printf 'just  1.0.0  1.1.0  ~/.tool-versions\ntypos  1.0.0  1.1.0  mise.toml')"
 cat > "$box/stub/mise" <<'EOF2'
 #!/bin/sh
 exit 1
 EOF2
-drift 1 "mise outdated failure propagates" "mise outdated --bump failed" ''
+drift 1 "mise outdated failure propagates" "mise outdated failed" ''
 rm "$box/stub/mise"
 unset MISE_TRUSTED_CONFIG_PATHS LOG
 
@@ -229,5 +251,12 @@ git rm -q --cached notes/typo.md
 
 printf '#!/bin/sh\necho $x\n' > notes/bad.sh && git add notes/bad.sh
 fast 1 "staged shell warning refused" "SC2154"
+
+# The other two hooks, run by lefthook itself: pre-push refuses the dirty tree left above before
+# any check; commit-msg refuses a bad subject.
+rc=0; lefthook run pre-push > "$work/out" 2>&1 || rc=$?
+[ "$rc" -ne 0 ] && grep -q "commit or set aside" "$work/out" || { cat "$work/out"; fail "pre-push did not refuse a dirty tree"; }; ok
+printf 'wip: bad\n' > "$work/m"; rc=0; lefthook run commit-msg "$work/m" > /dev/null 2>&1 || rc=$?
+[ "$rc" -ne 0 ] || fail "commit-msg hook accepted a bad subject"; ok
 
 echo "test-local-ci: $n cases passed"

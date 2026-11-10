@@ -36,7 +36,8 @@ The scope of the local checks for a docs-only repository (Markdown plus one shel
 | B. Full docs-only profile (C + markdownlint-cli2 + lychee) | 5 | 3 | 5 | 2 | 380 |
 
 Sensitivity: simplicity at 45 and conformance at 15 → A leads (445 vs 435); C stays first
-otherwise. Whether to keep a workflow was not scored: nothing deploys, so the rule leaves none.
+otherwise. Conformance of C is generous (the skill's docs-only profile also lists
+markdownlint-cli2 and lychee, rule 1 lets a project leave them out); at C 4 / A 3 the order holds. Whether to keep a workflow was not scored: nothing deploys, so the rule leaves none.
 
 ## Decision
 
@@ -45,8 +46,8 @@ Option C, with zero workflow:
 | Check | Was | Is now |
 | --- | --- | --- |
 | secrets | `ci.yml` job `secrets`: gitleaks CLI image 8.21.2, full history | gitleaks 8.30.1 (mise): `--staged` on pre-commit, full history in `just secrets` |
-| Mermaid render | `ci.yml` job `diagrams`: `scripts/render-mermaid.sh .`, mermaid-cli 11.4.2, Node 22 | `just diagrams`, same script and pin, Node 22.23.4 from mise |
-| shell scripts, hooks, spelling | none | `just lint`: shellcheck on `scripts/*.sh`, `lefthook validate`, typos (`typos.toml`) |
+| Mermaid render | `ci.yml` job `diagrams`: `scripts/render-mermaid.sh .`, mermaid-cli 11.4.2 through `npx -y` (only the top package pinned), Node 22 | `just diagrams`, same script; mermaid-cli 11.4.2 and its whole tree pinned with integrity hashes in `package-lock.json` (`npm ci` in `just setup`): the render now runs on the machine that holds the signing key and the tokens, so an unpinned transitive dependency is no longer acceptable; Node 22 from mise |
+| lockfile, shell scripts, hooks, spelling | none | `just lint`: `package-lock.json` in step with `package.json`, shellcheck on `scripts/*.sh`, `lefthook validate`, typos (`typos.toml`) |
 | local CI wiring | none | `just test`: `scripts/test-local-ci.sh`, `scripts/test-attest.sh` |
 | SonarQube quality gate | manual `sonar-scanner` before merge | `just sonar` in `gate`, quality-gate wait (#159: never skipped) |
 | merge | GitHub button after green Actions | `just merge <pr>` only, after `just gate` on the pushed head; the `main` ruleset requires the `gate` status alone (`.github/branch-protection.md`) |
@@ -54,9 +55,11 @@ Option C, with zero workflow:
 The tiers (`justfile`): L0 `just fast` on pre-commit (staged secrets, typos, shellcheck), L1
 `just check` on pre-push (lint, test, diagrams, secrets; 56 s measured), L2 `just gate` before
 every merge (check, Sonar, then the attestation), L3 `just nightly` on a systemd user timer
-(check, TruffleHog, toolchain drift). Tools are pinned in `mise.toml` and `mise.lock`; `just setup`
-installs them and the hooks. Dependabot stays (its `github-actions` ecosystem has nothing to
-track until a workflow returns). `scripts/attest.sh`, `test-attest.sh`, `check-cassettes.sh` and
+(check, TruffleHog, toolchain drift; the units in `scripts/systemd/`, installed by hand as the
+timer's header says). Tools are pinned in `mise.toml` and `mise.lock` (Node by major: the next
+major is a project choice, `scripts/toolchain-drift.sh` reports its patches only); `just setup`
+installs them, mermaid-cli and the hooks. Dependabot stays, on the `npm` ecosystem (the
+`github-actions` one would report a missing dependency file with no workflow left). `scripts/attest.sh`, `test-attest.sh`, `check-cassettes.sh` and
 `check-commit-msg.sh` are verbatim copies of `~/.claude/scripts` (agents-skills#400: no drift
 between copies; `check-cassettes.sh` is there only because `test-attest.sh` exercises it).
 
@@ -72,6 +75,9 @@ between copies; `check-cassettes.sh` is there only because `test-attest.sh` exer
   Every later merge goes through `just merge <pr>`.
 - A squash merge creates a `main` commit with no attestation: the next brick's gate runs on its
   own pushed head, which contains it.
-- Lefthook needs the hooks installed once per clone: `just setup`. Clément's clone too.
+- Lefthook needs the hooks installed once per clone: `just setup`. Clément's clone too
+  (`README.md` § Development).
+- The nightly timer is enabled by hand on the owner's machine (`scripts/systemd/bad-cat-nightly.timer`
+  header); until then L3 does not run.
 - With the first code brick, `just test` gains the unit tests with coverage ≥ 80 % and `check`
   gains Semgrep CE (skill `local-ci` rule 1).

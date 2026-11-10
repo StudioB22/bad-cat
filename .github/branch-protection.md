@@ -22,10 +22,7 @@ the signed note is pushed, so a green status always has its note; `just merge <p
 on the exact head SHA before `gh pr merge`. Run `just merge` from an up-to-date `main` checkout,
 so the `merge` recipe itself is the trusted one.
 
-On the bootstrap pull request (the one that introduces ADR-0006): run `just gate` on its pushed
-head first (the first `gate` report), then apply the ruleset below, then merge with
-`gh pr merge` under the owner's explicit waiver (`.github/allowed_signers` is not on `main` yet,
-so `just merge` cannot verify the note). Every later merge goes through `just merge <pr>`.
+Bootstrap exception (the pull request introducing ADR-0006): ADR-0006 § Consequences.
 
 ## Apply (one-time, by owner)
 

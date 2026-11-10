@@ -9,50 +9,53 @@
 #               before every merge
 #   L3 nightly  systemd user timer                     check + TruffleHog + toolchain drift
 #
-# Then: `just merge <pr>` (refuses without the gate attestation on the head SHA). Code checks
-# (unit tests, coverage, Semgrep) join `check` with the first code brick.
+# Then: `just merge <pr>` (refuses without the gate attestation on the head SHA); run it from an
+# up-to-date main checkout, so this recipe is the trusted one. L3 install: scripts/systemd/*.timer
+# header. Code checks (unit tests, coverage, Semgrep) join `check` with the first code brick.
 
 set shell := ["sh", "-eu", "-c"]
 
-# L1 by default
 default: check
 
-# Once per clone: the pinned toolchain and the git hooks
+# Once per clone: the pinned toolchain, mermaid-cli from the lockfile, the git hooks
 setup:
     mise install
+    mise x -- npm ci --no-audit --no-fund
     mise x -- lefthook install
 
 # L0 — the pre-commit checks on the staged files (< 10 s)
 fast:
     lefthook run pre-commit
 
-# The shell scripts, the hook config, spelling (typos.toml)
+# package-lock.json in step with package.json (npm ci would fail otherwise)
+# The lockfile, the shell scripts, the hook config, spelling (typos.toml)
 lint:
+    npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+    git diff --quiet -- package-lock.json
     shellcheck --severity=warning scripts/*.sh
     lefthook validate
     typos
 
-# The wiring of this local CI and of the attestation (skill local-ci rule 7); the project's own
-# tests join here with the first code brick
+# The project's own tests join here with the first code brick
+# The wiring of this local CI and of the attestation (skill local-ci rule 7)
 test:
     sh scripts/test-local-ci.sh
     sh scripts/test-attest.sh
 
-# Every Mermaid block of the repository renders (mermaid-cli pinned in scripts/render-mermaid.sh;
-# replaces the `diagrams` job of the former ci.yml)
+# Every Mermaid block of the repository renders (mermaid-cli from package-lock.json)
 diagrams:
     sh scripts/render-mermaid.sh .
 
-# Secrets in the whole git history (replaces the `secrets` job of the former ci.yml)
+# Secrets in the whole git history (the pre-commit hook scans the staged files only)
 secrets:
     gitleaks git --redact --no-banner .
 
 # L1 — pre-push (< 3 min)
 check: lint test diagrams secrets
 
-# L2 — pre-merge, called by review-local § 2b (base: the branch to integrate into), 5–15 min.
-# Ends with the gate attestation (agents-skills ADR-0003): commit status `gate` + signed note on
-# HEAD, which must already be pushed and up to date with `base`, so it runs on the pushed head only.
+# Called by review-local § 2b (base: the branch to integrate into), 5–15 min. Ends with the gate
+# attestation (agents-skills ADR-0003): commit status `gate` + signed note on HEAD, which must
+# already be pushed and up to date with `base`, so it runs on the pushed head only.
 # L2 — pre-merge on the pushed head: check + Sonar, then the attestation
 gate base="origin/main":
     #!/bin/sh
@@ -63,7 +66,7 @@ gate base="origin/main":
     git merge-base --is-ancestor "$base" HEAD || { echo "gate: HEAD is behind $base, merge or rebase it first" >&2; exit 1; }
     # Reminder, not a control (this justfile is the branch's own): read a branch's CI changes before
     # gating it with the owner's keys and tokens, then GATE_CI_CHANGE=1 just gate.
-    ci=$(git diff --name-only "$base...HEAD" -- justfile lefthook.yml mise.toml mise.lock typos.toml scripts .github sonar-project.properties)
+    ci=$(git diff --name-only "$base...HEAD" -- justfile lefthook.yml mise.toml mise.lock .mise.toml mise.local.toml typos.toml .typos.toml _typos.toml .gitleaks.toml .gitleaksignore package.json package-lock.json scripts .github sonar-project.properties)
     [ -z "$ci" ] || [ "${GATE_CI_CHANGE:-0}" = 1 ] || { echo "gate: this branch changes the local CI itself ($(printf '%s' "$ci" | tr '\n' ' ')): read those files, then run GATE_CI_CHANGE=1 just gate" >&2; exit 1; }
     [ -n "$(git branch -r --contains HEAD)" ] || { echo "gate: push HEAD first (the attestation is written on the pushed head)" >&2; exit 1; }
     # `check` runs from the body, not as a dependency, so the HEAD it checked is the one attested.
@@ -73,9 +76,9 @@ gate base="origin/main":
     [ "$(git rev-parse HEAD)" = "$start" ] || { echo "gate: HEAD moved during the gate ($start checked), run it again" >&2; exit 1; }
     sh scripts/attest.sh write gate "$start"
 
-# SonarQube analysis on the local Community Build (sonar-project.properties) with the token of
-# ~/.config/sonar-tokens/bad-cat (fallback: the global analysis token
-# ~/.config/sonarqube/analysis-token, skill infra-accounts), waiting for the quality gate.
+# On the local Community Build (sonar-project.properties) with the token of
+# ~/.config/sonar-tokens/bad-cat, else the global analysis token ~/.config/sonarqube/analysis-token
+# (skill infra-accounts), never on the command line.
 # SonarQube analysis with quality-gate wait (step of gate)
 sonar:
     #!/bin/sh
@@ -87,9 +90,9 @@ sonar:
     curl -sf -m 5 "$url/api/system/status" | grep -q '"status":"UP"' || { echo "sonar: SonarQube is not UP at $url, start it first" >&2; exit 1; }
     SONAR_TOKEN="$SONAR_TOKEN" sonar-scanner -Dsonar.host.url="$url" -Dsonar.qualitygate.wait=true
 
-# Merge a PR only when its exact head SHA carries the gate attestation (agents-skills ADR-0003).
 # The verifier is read from origin/main. Squash, as every merge of this repository. Same-repository
 # PRs only (the head is fetched from origin).
+# Merge a PR only when its exact head SHA carries the gate attestation (agents-skills ADR-0003)
 merge pr:
     #!/bin/sh
     set -eu
@@ -103,9 +106,9 @@ merge pr:
     sh "$verifier" verify gate "$sha"
     gh pr merge "$pr" --squash --match-head-commit "$sha"
 
-# L3 — nightly, systemd user timer (no time budget): deep secret history (TruffleHog, offline) and
-# toolchain drift: scripts/toolchain-drift.sh fails on a mise.toml tool behind its latest release.
-# L3 — nightly (systemd timer): check + TruffleHog + toolchain drift
+# No budget but the 2 h unit timeout: deep secret history (TruffleHog, offline) and toolchain
+# drift (scripts/toolchain-drift.sh fails on a mise.toml tool behind its latest release).
+# L3 — nightly (systemd user timer): check + TruffleHog + toolchain drift
 nightly: check
     trufflehog git "file://$PWD" --no-verification --fail --no-update
     sh scripts/toolchain-drift.sh
