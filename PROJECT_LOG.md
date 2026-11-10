@@ -2,6 +2,19 @@
 
 Chronological logbook of bad-cat decisions and milestones, newest first; complements `git log`.
 
+## 2026-11-10 — Local CI, no GitHub workflow
+
+- Issue #7 (ADR-0006, owner MCDA 450/500): every check runs locally, `ci.yml` deleted, zero
+  workflow left (nothing deploys from GitHub). Tiers L0 `fast` / L1 `check` / L2 `gate` /
+  L3 `nightly`, lefthook hooks, mise-pinned tools, mermaid-cli pinned by `package-lock.json`,
+  `scripts/attest.sh` + `just merge <pr>` with the `gate` attestation (agents-skills ADR-0003);
+  `main` ruleset requires the `gate` status only; Dependabot moved to the `npm` ecosystem.
+- Review-local: adversarial Must (Node major reported as drift by `nightly`) fixed by the
+  major pin + two-pass drift script; test audit Musts (merge head equal to `origin/main`, base
+  fetch unproven) fixed. `just check` under the 3 min budget; wiring tests 112 + 31 cases.
+- Bootstrap merge under the owner's waiver (`.github/allowed_signers` not yet on `main`); every
+  later merge through `just merge`. Clément: `README.md` § Development.
+
 ## 2026-10-30 — Hardware deployment modelled
 
 - Issue #5: owner decisions Raspberry Pi 5 (4 GB) + Camera Module 3 (MCDA 425/500) and one

@@ -1,6 +1,8 @@
 version: 2
 updates:
-  - package-ecosystem: github-actions
+  # The only dependency tree: mermaid-cli for the local CI (ADR-0006). No workflow is left, so the
+  # github-actions ecosystem would only report a missing dependency file.
+  - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly

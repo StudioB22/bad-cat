@@ -1,2 +1,3 @@
 # SonarQube scanner working directory
 .scannerwork/
+node_modules/

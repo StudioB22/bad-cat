@@ -1,0 +1,15 @@
+# Install once per clone (user units, no root); WorkingDirectory in the .service assumes the clone
+# at ~/Documents/02_personal/bad-cat:
+#   mkdir -p ~/.config/systemd/user && cp scripts/systemd/bad-cat-nightly* ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now bad-cat-nightly.timer
+[Unit]
+Description=Nightly local CI of bad-cat (catches up after the PC was off)
+
+[Timer]
+# The PC is idle; the jitter keeps it clear of the other projects' nightly timers.
+OnCalendar=*-*-* 04:50:00
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
