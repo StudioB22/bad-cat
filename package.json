@@ -5,6 +5,6 @@
   "description": "Pinned tooling of the local CI (ADR-0006): mermaid-cli for scripts/render-mermaid.sh, installed with npm ci so its whole tree carries integrity hashes.",
   "license": "MIT",
   "devDependencies": {
-    "@mermaid-js/mermaid-cli": "11.4.2"
+    "@mermaid-js/mermaid-cli": "12.2.0"
   }
 }
